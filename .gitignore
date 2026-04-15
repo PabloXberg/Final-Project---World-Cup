@@ -1,0 +1,19 @@
+# Secrets
+.env
+
+# Modelos (archivos grandes)
+*.pkl
+*.keras
+models/
+
+# Datos
+db/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Entorno virtual
+venv/
+.venv/
