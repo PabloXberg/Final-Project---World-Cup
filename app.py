@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import joblib
 import os
 import time
+from wc2026_game import render_wc2026_game
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -318,7 +319,7 @@ with st.sidebar:
 
     menu = st.radio(
         "Navigation",
-        ["📊 Dashboard", "🔮 Predictor", "🤖 AI Analyst", "💬 Chat with Data"],
+        ["📊 Dashboard", "🔮 Predictor", "🏆 WC 2026 Game", "🤖 AI Analyst", "💬 Chat with Data"],
         label_visibility="collapsed"
     )
 
@@ -596,7 +597,19 @@ elif menu == "🔮 Predictor":
 
 
 # ══════════════════════════════════════════════
-# PAGE 3: AI ANALYST
+# PAGE 3: WC 2026 GAME
+# ══════════════════════════════════════════════
+
+elif menu == "🏆 WC 2026 Game":
+    render_wc2026_game(
+        model=model if model_ok else None,
+        results_df=results if data_ok else None,
+        rankings_df=rankings if data_ok else None,
+        build_features_fn=build_features if data_ok else None
+    )
+
+# ══════════════════════════════════════════════
+# PAGE 4: AI ANALYST
 # ══════════════════════════════════════════════
 elif menu == "🤖 AI Analyst":
     st.markdown("# 🤖 AI Sports Analyst")
