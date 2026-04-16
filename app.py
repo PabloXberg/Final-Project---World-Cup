@@ -394,13 +394,11 @@ if menu == "📊 Dashboard":
 
     st.markdown("---")
 
-    tab1, tab2, tab3, tab4, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🏆 Wins by Nation",
         "🎯 Goal Scorers (Top Teams)",
         "📈 Historical Trends",
         "⚔️ Head to Head",
-        # "🌍 Confederation Power",
-        # "⚡ Biggest Upsets",
         "🏟️ Tournament Map"
     ])
 
@@ -523,74 +521,8 @@ if menu == "📊 Dashboard":
                 st.info(f"No match data found between {eq1} and {eq2}.")
 
 
-
-                    # ── NEW TAB 4: Confederation Power ──
-    # with tab4:
-    #     st.subheader("World Cup Wins by Confederation")
-    #     st.caption("Which continent dominates the World Cup?")
-
-    #     # Mapping of countries to confederations
-    #     CONMEBOL = ['Brazil','Argentina','Uruguay','Colombia','Chile','Peru','Paraguay','Ecuador','Bolivia','Venezuela']
-    #     UEFA     = ['Germany','Italy','France','Spain','England','Netherlands','Portugal','Belgium','Croatia','Sweden',
-    #                 'Denmark','Switzerland','Austria','Poland','Russia','Czech Republic','Czechia','Hungary','Romania',
-    #                 'Norway','Scotland','Wales','Republic of Ireland','Northern Ireland','Yugoslavia','Soviet Union',
-    #                 'Bulgaria','Türkiye','Turkey','Ukraine','Greece','Serbia','Slovakia','Bosnia-Herzegovina','Iceland']
-    #     CONCACAF = ['Mexico','USA','Canada','Costa Rica','Honduras','Jamaica','Trinidad and Tobago','Cuba','Haiti','Panama','El Salvador','Curaçao']
-    #     CAF      = ['Cameroon','Nigeria','Senegal','Ghana','Algeria','Tunisia','Morocco','Egypt','South Africa',"Côte d'Ivoire",'Congo DR','Cabo Verde','Angola','Zaire']
-    #     AFC      = ['South Korea','Korea Republic','Japan','Australia','Saudi Arabia','Iran','IR Iran','Iraq','Qatar','Jordan','China PR','Kuwait','UAE','Uzbekistan','North Korea']
-    #     OFC      = ['New Zealand','Australia']
-
-    #     def get_confed(team):
-    #         if team in CONMEBOL: return 'CONMEBOL'
-    #         if team in UEFA:     return 'UEFA'
-    #         if team in CONCACAF: return 'CONCACAF'
-    #         if team in CAF:      return 'CAF'
-    #         if team in AFC:      return 'AFC'
-    #         if team in OFC:      return 'OFC'
-    #         return 'Other'
-
-    #     wc_w = wc_matches.copy()
-    #     wc_w['winner'] = wc_w.apply(
-    #         lambda r: r['home_team'] if r['home_score'] > r['away_score']
-    #                   else r['away_team'] if r['away_score'] > r['home_score']
-    #                   else 'Draw', axis=1
-    #     )
-    #     wc_w = wc_w[wc_w['winner'] != 'Draw']
-    #     wc_w['confederation'] = wc_w['winner'].apply(get_confed)
-    #     confed_wins = wc_w['confederation'].value_counts()
-
-    #     fig = px.pie(
-    #         values=confed_wins.values,
-    #         names=confed_wins.index,
-    #         color_discrete_sequence=['#e8c040', '#4a9eff', '#ff6b6b', '#b59cff', '#5cdb95', '#666']
-    #     )
-    #     fig.update_traces(textfont_size=14, textfont_color='white', textposition='inside')
-    #     fig.update_layout(
-    #         paper_bgcolor='rgba(0,0,0,0)', font_color='#e0e0e0', height=420,
-    #         legend=dict(font=dict(size=12))
-    #     )
-    #     st.plotly_chart(fig, width='stretch')
-
-    # ── NEW TAB 5: Biggest Upsets ──
-    # with tab5:
-    #     st.subheader("Top 15 Biggest Goal-Difference Wins in World Cup History")
-    #     st.caption("The most one-sided World Cup matches ever recorded")
-
-    #     wc_upsets = wc_matches.copy()
-    #     wc_upsets['goal_diff'] = abs(wc_upsets['home_score'] - wc_upsets['away_score'])
-    #     wc_upsets['date_str'] = wc_upsets['date'].dt.strftime('%Y')
-    #     wc_upsets['matchup']  = (
-    #         wc_upsets['home_team'] + ' ' + wc_upsets['home_score'].astype(int).astype(str) +
-    #         ' - ' + wc_upsets['away_score'].astype(int).astype(str) + ' ' + wc_upsets['away_team']
-    #     )
-    #     top_upsets = wc_upsets.nlargest(15, 'goal_diff')[['date_str', 'matchup', 'goal_diff', 'tournament']]
-    #     top_upsets.columns = ['Year', 'Match', 'Goal Difference', 'Tournament']
-    #     st.dataframe(top_upsets.reset_index(drop=True), width='stretch', hide_index=True)
-
-    
-
-    # ── NEW TAB 7: Tournament Map ──
-    with tab7:
+    # ── NEW TAB 5: Tournament Map ──
+    with tab5:
         st.subheader("World Cup Host Nations Across History")
 
 # Map country names to ISO-3 codes

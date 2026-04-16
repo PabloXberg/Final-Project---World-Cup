@@ -1,144 +1,162 @@
-# ⚽ FIFA World Cup Predictor — End-to-End Data Science Project
+# ⚽ FIFA World Cup AI Predictor
 
-Un proyecto completo de Data Science que predice resultados de la Copa Mundial FIFA usando Machine Learning, Deep Learning y GenAI.
+### End-to-End Data Science Project
 
-## 🎯 Objetivo
-
-Construir un sistema end-to-end que:
-1. Analiza el historial completo de fútbol internacional (1872–2024)
-2. Entrena múltiples modelos ML/DL para predecir resultados
-3. Integra un LLM real (Llama 3 via Groq) para análisis deportivo inteligente
-4. Expone todo en una aplicación interactiva con Streamlit
+A comprehensive Data Science project that predicts international football match outcomes using Machine Learning, Deep Learning, and Generative AI — deployed as an interactive Streamlit application with a full FIFA World Cup 2026 tournament simulator.
 
 ---
 
-## 🗂️ Estructura del Proyecto
+## 🎯 Project Goal
+
+Build an end-to-end system that:
+
+1. Analyzes 150+ years of international football history (1872–2024)
+2. Engineers 13 contextual features per match from raw data
+3. Trains and compares 4 ML/DL models to predict match outcomes
+4. Integrates a real LLM (via OpenRouter) for data-grounded sports analysis
+5. Simulates the entire FIFA World Cup 2026 bracket (48 teams, 104 matches)
+6. Deploys everything through a professional Streamlit application
+
+---
+
+## 🗂️ Project Structure
 
 ```
 FIFA-World-Cup-Predictor/
 │
 ├── db/
-│   ├── results.csv          # Partidos internacionales 1872-2024
-│   └── ranking.csv          # Rankings FIFA históricos
+│   ├── results.csv                      # International matches 1872–2024
+│   ├── ranking.csv                      # FIFA world rankings 1992–2024
+│   ├── fifa-world-cup-2026-UTC.csv      # WC 2026 fixture (104 matches)
+│   └── features_engineered.csv          # Pre-computed feature matrix
 │
-├── main.ipynb               # Notebook principal (EDA + ML + GenAI)
-├── app.py                   # Aplicación Streamlit
-├── requirements.txt         # Dependencias
-├── .env                     # API Keys (NO subir a GitHub)
+├── assets/logos/                         # National team crests (48 teams + WC logo)
+│
+├── models/
+│   ├── xgb_model.pkl                    # XGBoost (primary model)
+│   ├── rf_model.pkl                     # Random Forest
+│   ├── gb_model.pkl                     # Gradient Boosting
+│   ├── scaler.pkl                       # StandardScaler for Neural Network
+│   └── neural_network.keras             # MLP Deep Learning model
+│
+├── plots/                               # EDA and ML visualizations
+│
+├── main.ipynb                           # Complete notebook (EDA + ML + GenAI)
+├── app.py                               # Streamlit application (main)
+├── wc2026_game.py                       # WC 2026 predictor module
+├── modelo_fifa.pkl                      # Primary model (used by app.py)
+├── requirements.txt                     # Python dependencies
+├── .env                                 # API keys (DO NOT push to GitHub)
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 📦 Datasets Necesarios
+## 📦 Datasets
 
-Descargar de Kaggle y colocar en la carpeta `db/`:
+Download from Kaggle and place in the `db/` folder:
 
-| Archivo | Fuente Kaggle |
-|---|---|
-| `results.csv` | [martj42/international-football-results-from-1872-to-2022](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2022) |
-| `ranking.csv` | [cashncarry/fifaworldranking](https://www.kaggle.com/datasets/cashncarry/fifaworldranking) |
+| File                          | Source                                                                                                                             | Records          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `results.csv`                 | [martj42/international-football-results](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2022) | ~49,000 matches  |
+| `ranking.csv`                 | [cashncarry/fifaworldranking](https://www.kaggle.com/datasets/cashncarry/fifaworldranking)                                         | ~67,000 rankings |
+| `fifa-world-cup-2026-UTC.csv` | [fixturedownload.com](https://fixturedownload.com/results/fifa-world-cup-2026)                                                     | 104 matches      |
 
 ---
 
-## ⚙️ Instalación
+## ⚙️ Installation
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/TU_USUARIO/FIFA-World-Cup-Predictor.git
+# 1. Clone the repository
+git clone https://github.com/YOUR_USER/FIFA-World-Cup-Predictor.git
 cd FIFA-World-Cup-Predictor
 
-# 2. Crear entorno virtual
+# 2. Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 venv\Scripts\activate     # Windows
 
-# 3. Instalar dependencias
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Configurar API Key de Groq (gratis en groq.com)
-# Crear archivo .env con:
-# GROQ_API_KEY=tu_api_key_aqui
+# 4. Configure API key (free at openrouter.ai)
+echo "OPENROUTER_API_KEY=sk-or-your-key-here" > .env
 ```
 
 ---
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Ejecutar el Notebook
 ```bash
+# Run the notebook (training + analysis)
 jupyter notebook main.ipynb
+
+# Run the Streamlit app
+python -m streamlit run app.py
 ```
 
-### Ejecutar la App
-```bash
-streamlit run app.py
-```
+---
+
+## 🧠 Feature Engineering (13 Features)
+
+All features are computed dynamically per match using only data available _before_ the match date (no data leakage):
+
+| Feature                                                     | Description                |
+| ----------------------------------------------------------- | -------------------------- |
+| `home_ranking` / `away_ranking`                             | FIFA ranking at match date |
+| `ranking_diff`                                              | Ranking gap (home − away)  |
+| `home_form` / `away_form`                                   | Win % in last 10 matches   |
+| `form_diff`                                                 | Form difference            |
+| `home_goals_avg` / `away_goals_avg`                         | Avg goals scored (last 10) |
+| `h2h_home_win_rate` / `h2h_draw_rate` / `h2h_away_win_rate` | Historical H2H rates       |
+| `h2h_total`                                                 | Total H2H meetings         |
+| `is_neutral`                                                | Neutral venue flag         |
 
 ---
 
-## 🧠 Features del Modelo
+## 📊 Models & Results
 
-El modelo utiliza **13 features** calculadas dinámicamente para cada partido:
+| Model                | Test Accuracy | CV Accuracy (5-fold) |
+| -------------------- | ------------- | -------------------- |
+| **XGBoost** ⭐       | ~62%          | ~62%                 |
+| Random Forest        | ~61%          | ~61%                 |
+| Gradient Boosting    | ~61%          | ~61%                 |
+| Neural Network (MLP) | ~49%          | —                    |
 
-| Feature | Descripción |
-|---|---|
-| `home_ranking` | Ranking FIFA del equipo local |
-| `away_ranking` | Ranking FIFA del equipo visitante |
-| `ranking_diff` | Diferencia de rankings |
-| `home_form` | % victorias en últimos 10 partidos |
-| `away_form` | % victorias en últimos 10 partidos |
-| `form_diff` | Diferencia de forma |
-| `home_goals_avg` | Promedio goles marcados (últimos 10) |
-| `away_goals_avg` | Promedio goles marcados (últimos 10) |
-| `h2h_home_win_rate` | Tasa de victorias históricas H2H |
-| `h2h_draw_rate` | Tasa de empates históricos H2H |
-| `h2h_away_win_rate` | Tasa de victorias visitante H2H |
-| `h2h_total` | Total de enfrentamientos históricos |
-| `is_neutral` | ¿Se juega en campo neutral? |
+> Football match prediction has a natural accuracy ceiling of ~65–70% due to the sport's inherent randomness. Our results are consistent with academic research on the topic.
+
+**Most predictive features:** ranking difference, H2H win rates, and form difference.
 
 ---
 
-## 📊 Modelos Implementados
+## 🖥️ Streamlit Application (5 Pages)
 
-- **XGBoost** — Gradient boosting optimizado
-- **Random Forest** — Ensemble de árboles de decisión  
-- **Red Neuronal (MLP)** — Deep Learning con Keras/TensorFlow
-
----
-
-## 🤖 Componente GenAI
-
-Integración con **Llama 3.3-70B** via Groq API (gratuita):
-- Análisis contextual del partido basado en datos históricos
-- Chatbot interactivo con contexto de datos reales
-- Generación de crónicas deportivas fundamentadas
+| Page                  | Description                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| 📊 **Dashboard**      | Interactive EDA with 5 tabs: wins by nation, goal scorers, historical trends, H2H explorer, and world map |
+| 🔮 **Predictor**      | Pick any two teams → XGBoost predicts the winner with probability cards and H2H context                   |
+| 🏆 **WC26 Predictor** | Simulates the entire FIFA World Cup 2026: group standings + full knockout bracket with team crests        |
+| 🤖 **AI Analyst**     | LLM-powered match analysis (English/Spanish) grounded in real historical statistics                       |
+| 💬 **Chat with Data** | RAG-style chatbot that answers World Cup history questions using real dataset context                     |
 
 ---
 
-## 📈 Resultados
+## 🤖 GenAI Component
 
-| Modelo | Accuracy | 
-|---|---|
-| XGBoost | ~65% |
-| Random Forest | ~63% |
-| Red Neuronal | ~61% |
-
-*Nota: Predecir fútbol tiene un límite natural de precisión (~65-70%) debido a la naturaleza aleatoria del deporte.*
+- **LLM Integration:** OpenRouter free tier (Llama 3.3, Nemotron, Gemma)
+- **Multi-model fallback:** Automatically tries 6 models if one is rate-limited
+- **Gemma compatibility:** Adapts `system` role to `user` for models that don't support it
+- **Data-grounded:** All LLM outputs are based on real statistics from the dataset
 
 ---
 
-## 🛠️ Tecnologías
+## 🛠️ Tech Stack
 
-![Python](https://img.shields.io/badge/Python-3.11-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.35-red)
-![XGBoost](https://img.shields.io/badge/XGBoost-2.0-orange)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.16-orange)
-![Groq](https://img.shields.io/badge/Groq-LLaMA3-green)
+Python · Pandas · NumPy · Matplotlib · Seaborn · Scikit-learn · XGBoost · TensorFlow/Keras · OpenRouter (LLM) · Streamlit · Plotly · Joblib
 
 ---
 
-## 👤 Autor
+## 👤 Author
 
-Proyecto Final — Data Science Bootcamp 2024
+Pablo Morena — Final Project, Data Science & ML Bootcamp 2026
