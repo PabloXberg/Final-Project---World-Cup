@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/pablo/AppData/Local/Programs/**)",
-      "Bash(ls /c/Python*)",
-      "Bash(/c/Users/pablo/AppData/Local/Programs/Python/python.exe -)"
-    ]
-  }
-}

@@ -6,9 +6,12 @@ import plotly.graph_objects as go
 import joblib
 import os
 import time
-from wc2026_game import render_wc2026_game
+from wc2026_game import logo_html, render_wc2026_game
 from openai import OpenAI
 from dotenv import load_dotenv
+import base64
+from pathlib import Path
+
 
 load_dotenv()
 
@@ -297,16 +300,27 @@ def build_features(home, away, results_df, rankings_df, is_neutral=False):
         total, int(is_neutral)
     ]])
 
+def local_img_b64(path, height=120):
+    """Embed a local image as base64 HTML."""
+    try:
+        with open(path, 'rb') as f:
+            data = base64.b64encode(f.read()).decode()
+        ext = Path(path).suffix.lstrip('.')
+        return f'<img src="data:image/{ext};base64,{data}" style="height:{height}px; border-radius:8px;" />'
+    except Exception:
+        return '⚽'
 
 # ──────────────────────────────────────────────
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
+    st.markdown(f"""
         <div style='text-align:center; padding: 20px 0 10px 0;'>
-            <div style='font-size:3rem'>⚽</div>
+            <div style='display:flex; justify-content:center; margin-bottom:10px;'>
+                {logo_html('WC2026', 80)}
+            </div>
             <div style='font-family:Oswald,sans-serif; font-size:1.3rem;
-                        color:#e8c040; letter-spacing:3px; margin-top:6px;'>
+                        color:#e8c040; letter-spacing:3px;'>
                 WORLD CUP
             </div>
             <div style='font-family:Oswald,sans-serif; font-size:1rem;
@@ -319,24 +333,22 @@ with st.sidebar:
 
     menu = st.radio(
         "Navigation",
-        ["📊 Dashboard", "🔮 Predictor", "🏆 WC 2026 Game", "🤖 AI Analyst", "💬 Chat with Data"],
+        ["📊 Dashboard", "🔮 Predictor", "🏆 WC26 Predictor", "🤖 AI Analyst" ],
         label_visibility="collapsed"
     )
 
     st.markdown("<hr>", unsafe_allow_html=True)
-    openrouter_key = st.text_input(
-    "🔑 OpenRouter API Key",
-    type="password",
-    help="Get your free key at openrouter.ai"
-    # No value= here — never pre-fills from .env
-)
-if openrouter_key:
-    os.environ["OPENROUTER_API_KEY"] = openrouter_key
-    st.success("✅ API Key configured")
-elif os.getenv("OPENROUTER_API_KEY"):
-    st.success("✅ API Key loaded from .env")
-else:
-    st.warning("No API Key — AI features disabled")
+    if os.getenv("OPENROUTER_API_KEY"):
+        st.markdown(
+            "<div style='text-align:center; color:#4a9eff; font-size:0.85rem;'>🤖 AI features enabled</div>",
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            "<div style='text-align:center; color:#888; font-size:0.85rem;'>⚠️ Add OPENROUTER_API_KEY to .env</div>",
+            unsafe_allow_html=True
+        )
+
 
 
 # ──────────────────────────────────────────────
@@ -382,7 +394,15 @@ if menu == "📊 Dashboard":
 
     st.markdown("---")
 
-    tab1, tab2, tab3 = st.tabs(["🏆 Wins by Nation", "📈 Historical Trends", "⚔️ Head to Head"])
+    tab1, tab2, tab3, tab4, tab7 = st.tabs([
+        "🏆 Wins by Nation",
+        "🎯 Goal Scorers (Top Teams)",
+        "📈 Historical Trends",
+        "⚔️ Head to Head",
+        # "🌍 Confederation Power",
+        # "⚡ Biggest Upsets",
+        "🏟️ Tournament Map"
+    ])
 
     with tab1:
         st.subheader("Top 15 — All-Time World Cup Wins")
@@ -405,7 +425,30 @@ if menu == "📊 Dashboard":
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, width='stretch')
 
+        # ── NEW TAB 2: Top Scorer Teams ──
     with tab2:
+        st.subheader("Most Goals Scored — Top 15 Nations")
+
+        goals_home = wc_matches.groupby('home_team')['home_score'].sum()
+        goals_away = wc_matches.groupby('away_team')['away_score'].sum()
+        total_goals = goals_home.add(goals_away, fill_value=0).sort_values(ascending=False).head(15)
+
+        fig = px.bar(
+            x=total_goals.values, y=total_goals.index,
+            orientation='h',
+            color=total_goals.values,
+            color_continuous_scale=[[0, '#1a2744'], [0.5, '#5cdb95'], [1, '#e8c040']],
+            labels={'x': 'Total Goals', 'y': ''}
+        )
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#e0e0e0', showlegend=False,
+            coloraxis_showscale=False, height=500,
+            yaxis=dict(autorange='reversed')
+        )
+        st.plotly_chart(fig, width='stretch')
+
+    with tab3:
         st.subheader("Goals per World Cup Edition")
         wc_copy = wc_matches.copy()
         wc_copy['year'] = wc_copy['date'].dt.year
@@ -435,7 +478,9 @@ if menu == "📊 Dashboard":
         )
         st.plotly_chart(fig, width='stretch')
 
-    with tab3:
+
+
+    with tab4:
         st.subheader("Head-to-Head History")
         col_h, col_a = st.columns(2)
         with col_h:
@@ -476,6 +521,118 @@ if menu == "📊 Dashboard":
                 st.dataframe(recent, hide_index=True, width='stretch')
             else:
                 st.info(f"No match data found between {eq1} and {eq2}.")
+
+
+
+                    # ── NEW TAB 4: Confederation Power ──
+    # with tab4:
+    #     st.subheader("World Cup Wins by Confederation")
+    #     st.caption("Which continent dominates the World Cup?")
+
+    #     # Mapping of countries to confederations
+    #     CONMEBOL = ['Brazil','Argentina','Uruguay','Colombia','Chile','Peru','Paraguay','Ecuador','Bolivia','Venezuela']
+    #     UEFA     = ['Germany','Italy','France','Spain','England','Netherlands','Portugal','Belgium','Croatia','Sweden',
+    #                 'Denmark','Switzerland','Austria','Poland','Russia','Czech Republic','Czechia','Hungary','Romania',
+    #                 'Norway','Scotland','Wales','Republic of Ireland','Northern Ireland','Yugoslavia','Soviet Union',
+    #                 'Bulgaria','Türkiye','Turkey','Ukraine','Greece','Serbia','Slovakia','Bosnia-Herzegovina','Iceland']
+    #     CONCACAF = ['Mexico','USA','Canada','Costa Rica','Honduras','Jamaica','Trinidad and Tobago','Cuba','Haiti','Panama','El Salvador','Curaçao']
+    #     CAF      = ['Cameroon','Nigeria','Senegal','Ghana','Algeria','Tunisia','Morocco','Egypt','South Africa',"Côte d'Ivoire",'Congo DR','Cabo Verde','Angola','Zaire']
+    #     AFC      = ['South Korea','Korea Republic','Japan','Australia','Saudi Arabia','Iran','IR Iran','Iraq','Qatar','Jordan','China PR','Kuwait','UAE','Uzbekistan','North Korea']
+    #     OFC      = ['New Zealand','Australia']
+
+    #     def get_confed(team):
+    #         if team in CONMEBOL: return 'CONMEBOL'
+    #         if team in UEFA:     return 'UEFA'
+    #         if team in CONCACAF: return 'CONCACAF'
+    #         if team in CAF:      return 'CAF'
+    #         if team in AFC:      return 'AFC'
+    #         if team in OFC:      return 'OFC'
+    #         return 'Other'
+
+    #     wc_w = wc_matches.copy()
+    #     wc_w['winner'] = wc_w.apply(
+    #         lambda r: r['home_team'] if r['home_score'] > r['away_score']
+    #                   else r['away_team'] if r['away_score'] > r['home_score']
+    #                   else 'Draw', axis=1
+    #     )
+    #     wc_w = wc_w[wc_w['winner'] != 'Draw']
+    #     wc_w['confederation'] = wc_w['winner'].apply(get_confed)
+    #     confed_wins = wc_w['confederation'].value_counts()
+
+    #     fig = px.pie(
+    #         values=confed_wins.values,
+    #         names=confed_wins.index,
+    #         color_discrete_sequence=['#e8c040', '#4a9eff', '#ff6b6b', '#b59cff', '#5cdb95', '#666']
+    #     )
+    #     fig.update_traces(textfont_size=14, textfont_color='white', textposition='inside')
+    #     fig.update_layout(
+    #         paper_bgcolor='rgba(0,0,0,0)', font_color='#e0e0e0', height=420,
+    #         legend=dict(font=dict(size=12))
+    #     )
+    #     st.plotly_chart(fig, width='stretch')
+
+    # ── NEW TAB 5: Biggest Upsets ──
+    # with tab5:
+    #     st.subheader("Top 15 Biggest Goal-Difference Wins in World Cup History")
+    #     st.caption("The most one-sided World Cup matches ever recorded")
+
+    #     wc_upsets = wc_matches.copy()
+    #     wc_upsets['goal_diff'] = abs(wc_upsets['home_score'] - wc_upsets['away_score'])
+    #     wc_upsets['date_str'] = wc_upsets['date'].dt.strftime('%Y')
+    #     wc_upsets['matchup']  = (
+    #         wc_upsets['home_team'] + ' ' + wc_upsets['home_score'].astype(int).astype(str) +
+    #         ' - ' + wc_upsets['away_score'].astype(int).astype(str) + ' ' + wc_upsets['away_team']
+    #     )
+    #     top_upsets = wc_upsets.nlargest(15, 'goal_diff')[['date_str', 'matchup', 'goal_diff', 'tournament']]
+    #     top_upsets.columns = ['Year', 'Match', 'Goal Difference', 'Tournament']
+    #     st.dataframe(top_upsets.reset_index(drop=True), width='stretch', hide_index=True)
+
+    
+
+    # ── NEW TAB 7: Tournament Map ──
+    with tab7:
+        st.subheader("World Cup Host Nations Across History")
+
+# Map country names to ISO-3 codes
+    COUNTRY_ISO3 = {
+        'Brazil': 'BRA', 'Germany': 'DEU', 'Italy': 'ITA', 'Argentina': 'ARG',
+        'France': 'FRA', 'England': 'ENG', 'Spain': 'ESP', 'Netherlands': 'NLD',
+        'Uruguay': 'URY', 'Hungary': 'HUN', 'Sweden': 'SWE', 'Czech Republic': 'CZE',
+        'Poland': 'POL', 'Russia': 'RUS', 'Portugal': 'PRT', 'Belgium': 'BEL',
+        'Croatia': 'HRV', 'Denmark': 'DNK', 'Switzerland': 'CHE', 'Austria': 'AUT',
+        'Mexico': 'MEX', 'USA': 'USA', 'Chile': 'CHL', 'Romania': 'ROU',
+        'Bulgaria': 'BGR', 'Soviet Union': 'RUS', 'Yugoslavia': 'SRB',
+        'West Germany': 'DEU', 'South Korea': 'KOR', 'Japan': 'JPN',
+        'Australia': 'AUS', 'Turkey': 'TUR', 'Senegal': 'SEN', 'Morocco': 'MAR',
+        'South Africa': 'ZAF', 'Qatar': 'QAT'
+    }
+
+    host_counts = wc_matches.groupby('country').size().reset_index(name='matches_hosted')
+    host_counts['iso3'] = host_counts['country'].map(COUNTRY_ISO3)
+    host_counts = host_counts.dropna(subset=['iso3'])
+
+    fig = px.choropleth(
+    host_counts,
+    locations='iso3',
+    locationmode='ISO-3',
+    color='matches_hosted',
+    hover_name='country',        # ← muestra el nombre del país
+    hover_data={'iso3': False},  # ← oculta la columna iso3
+    color_continuous_scale=[[0, '#1a2744'], [0.5, '#e8c040'], [1, '#ff6b6b']],
+    labels={'matches_hosted': 'Matches Hosted'}
+)
+    fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font_color='#e0e0e0', height=500,
+                geo=dict(
+                    bgcolor='rgba(0,0,0,0)',
+                    landcolor='#16213e',
+                    showframe=False,
+                    showcoastlines=False,
+                    projection_type='natural earth'
+                )
+            )
+    st.plotly_chart(fig, width='stretch')
 
 
 # ══════════════════════════════════════════════
@@ -600,7 +757,7 @@ elif menu == "🔮 Predictor":
 # PAGE 3: WC 2026 GAME
 # ══════════════════════════════════════════════
 
-elif menu == "🏆 WC 2026 Game":
+elif menu == "🏆 WC26 Predictor":
     render_wc2026_game(
         model=model if model_ok else None,
         results_df=results if data_ok else None,
