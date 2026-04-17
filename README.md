@@ -9,7 +9,6 @@ A comprehensive Data Science project that predicts international football match 
 ## 🎯 Project Goal
 
 Build an end-to-end system that:
-
 1. Analyzes 150+ years of international football history (1872–2024)
 2. Engineers 13 contextual features per match from raw data
 3. Trains and compares 4 ML/DL models to predict match outcomes
@@ -57,11 +56,11 @@ FIFA-World-Cup-Predictor/
 
 Download from Kaggle and place in the `db/` folder:
 
-| File                          | Source                                                                                                                             | Records          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| `results.csv`                 | [martj42/international-football-results](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2022) | ~49,000 matches  |
-| `ranking.csv`                 | [cashncarry/fifaworldranking](https://www.kaggle.com/datasets/cashncarry/fifaworldranking)                                         | ~67,000 rankings |
-| `fifa-world-cup-2026-UTC.csv` | [fixturedownload.com](https://fixturedownload.com/results/fifa-world-cup-2026)                                                     | 104 matches      |
+| File | Source | Records |
+|---|---|---|
+| `results.csv` | [martj42/international-football-results](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2022) | ~49,000 matches |
+| `ranking.csv` | [cashncarry/fifaworldranking](https://www.kaggle.com/datasets/cashncarry/fifaworldranking) | ~67,000 rankings |
+| `fifa-world-cup-2026-UTC.csv` | [fixturedownload.com](https://fixturedownload.com/results/fifa-world-cup-2026) | 104 matches |
 
 ---
 
@@ -100,29 +99,29 @@ python -m streamlit run app.py
 
 ## 🧠 Feature Engineering (13 Features)
 
-All features are computed dynamically per match using only data available _before_ the match date (no data leakage):
+All features are computed dynamically per match using only data available *before* the match date (no data leakage):
 
-| Feature                                                     | Description                |
-| ----------------------------------------------------------- | -------------------------- |
-| `home_ranking` / `away_ranking`                             | FIFA ranking at match date |
-| `ranking_diff`                                              | Ranking gap (home − away)  |
-| `home_form` / `away_form`                                   | Win % in last 10 matches   |
-| `form_diff`                                                 | Form difference            |
-| `home_goals_avg` / `away_goals_avg`                         | Avg goals scored (last 10) |
-| `h2h_home_win_rate` / `h2h_draw_rate` / `h2h_away_win_rate` | Historical H2H rates       |
-| `h2h_total`                                                 | Total H2H meetings         |
-| `is_neutral`                                                | Neutral venue flag         |
+| Feature | Description |
+|---|---|
+| `home_ranking` / `away_ranking` | FIFA ranking at match date |
+| `ranking_diff` | Ranking gap (home − away) |
+| `home_form` / `away_form` | Win % in last 10 matches |
+| `form_diff` | Form difference |
+| `home_goals_avg` / `away_goals_avg` | Avg goals scored (last 10) |
+| `h2h_home_win_rate` / `h2h_draw_rate` / `h2h_away_win_rate` | Historical H2H rates |
+| `h2h_total` | Total H2H meetings |
+| `is_neutral` | Neutral venue flag |
 
 ---
 
 ## 📊 Models & Results
 
-| Model                | Test Accuracy | CV Accuracy (5-fold) |
-| -------------------- | ------------- | -------------------- |
-| **XGBoost** ⭐       | ~62%          | ~62%                 |
-| Random Forest        | ~61%          | ~61%                 |
-| Gradient Boosting    | ~61%          | ~61%                 |
-| Neural Network (MLP) | ~49%          | —                    |
+| Model | Test Accuracy | CV Accuracy (5-fold) |
+|---|---|---|
+| **XGBoost** ⭐ | ~62% | ~62% |
+| Random Forest | ~61% | ~61% |
+| Gradient Boosting | ~61% | ~61% |
+| Neural Network (MLP) | ~49% | — |
 
 > Football match prediction has a natural accuracy ceiling of ~65–70% due to the sport's inherent randomness. Our results are consistent with academic research on the topic.
 
@@ -130,15 +129,14 @@ All features are computed dynamically per match using only data available _befor
 
 ---
 
-## 🖥️ Streamlit Application (5 Pages)
+## 🖥️ Streamlit Application (4 Pages)
 
-| Page                  | Description                                                                                               |
-| --------------------- | --------------------------------------------------------------------------------------------------------- |
-| 📊 **Dashboard**      | Interactive EDA with 5 tabs: wins by nation, goal scorers, historical trends, H2H explorer, and world map |
-| 🔮 **Predictor**      | Pick any two teams → XGBoost predicts the winner with probability cards and H2H context                   |
-| 🏆 **WC26 Predictor** | Simulates the entire FIFA World Cup 2026: group standings + full knockout bracket with team crests        |
-| 🤖 **AI Analyst**     | LLM-powered match analysis (English/Spanish) grounded in real historical statistics                       |
-| 💬 **Chat with Data** | RAG-style chatbot that answers World Cup history questions using real dataset context                     |
+| Page | Description |
+|---|---|
+| 📊 **Dashboard** | Interactive EDA with 5 tabs: wins by nation, goal scorers, historical trends, H2H explorer, and world map |
+| 🔮 **Predictor** | Pick any two teams → XGBoost predicts the winner with probability cards and H2H context |
+| 🏆 **WC26 Predictor** | Simulates the entire FIFA World Cup 2026: group standings + full knockout bracket with team crests |
+| 🤖 **AI Analyst** | LLM-powered match analysis (English/Spanish) grounded in real historical statistics |
 
 ---
 
@@ -159,4 +157,4 @@ Python · Pandas · NumPy · Matplotlib · Seaborn · Scikit-learn · XGBoost ·
 
 ## 👤 Author
 
-Pablo Morena — Final Project, Data Science & ML Bootcamp 2026
+Pablo — Final Project, Data Science Bootcamp 2025

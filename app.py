@@ -1,3 +1,13 @@
+"""
+FIFA World Cup AI Predictor — Streamlit Application
+End-to-End Data Science Project
+
+Pages:
+  📊 Dashboard         — Historical analysis with interactive charts
+  🔮 Predictor         — XGBoost match outcome prediction
+  🏆 WC26 Predictor    — Full World Cup 2026 simulation
+  🤖 AI Analyst        — LLM-powered match analysis
+"""
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,12 +16,11 @@ import plotly.graph_objects as go
 import joblib
 import os
 import time
-from wc2026_game import logo_html, render_wc2026_game
-from openai import OpenAI
-from dotenv import load_dotenv
 import base64
 from pathlib import Path
-
+from openai import OpenAI
+from dotenv import load_dotenv
+from wc2026_game import logo_html, render_wc2026_game
 
 load_dotenv()
 
@@ -146,21 +155,24 @@ st.markdown("""
 # ──────────────────────────────────────────────
 @st.cache_data
 def load_data():
+    """Load and prepare historical match data + FIFA rankings."""
     results  = pd.read_csv('db/results.csv')
     rankings = pd.read_csv('db/ranking.csv')
     results['date']       = pd.to_datetime(results['date'])
     rankings['rank_date'] = pd.to_datetime(rankings['rank_date'])
     results = results.dropna(subset=['home_score', 'away_score']).copy()
-    # Add result label
+
     def classify(row):
-        if row['home_score'] > row['away_score']:   return 'Home Win'
+        if row['home_score'] > row['away_score']:    return 'Home Win'
         elif row['home_score'] == row['away_score']: return 'Draw'
         else:                                        return 'Away Win'
     results['result_label'] = results.apply(classify, axis=1)
     return results, rankings
 
+
 @st.cache_resource
 def load_model():
+    """Load the trained XGBoost model."""
     return joblib.load('modelo_fifa.pkl')
 
 
@@ -172,6 +184,7 @@ def get_openrouter_client(api_key):
         return None
     return OpenAI(base_url='https://openrouter.ai/api/v1', api_key=api_key)
 
+
 FALLBACK_MODELS = [
     'meta-llama/llama-3.3-70b-instruct:free',
     'nvidia/nemotron-3-super-120b-a12b:free',
@@ -180,6 +193,7 @@ FALLBACK_MODELS = [
     'google/gemma-3-12b-it:free',
     'google/gemma-3-4b-it:free',
 ]
+
 
 def adapt_messages(messages, model):
     """Convert 'system' role to 'user' for models that don't support it (e.g. Gemma)."""
@@ -196,6 +210,7 @@ def adapt_messages(messages, model):
             adapted.append(msg)
     return adapted
 
+
 def call_llm(client, messages, max_tokens=500, temperature=0.7):
     """Call LLM with automatic fallback across multiple free models."""
     for model in FALLBACK_MODELS:
@@ -211,8 +226,7 @@ def call_llm(client, messages, max_tokens=500, temperature=0.7):
             if '429' in str(e) or '400' in str(e) or 'rate' in str(e).lower():
                 time.sleep(2)
                 continue
-            else:
-                raise e
+            raise e
     return '⚠️ Analysis temporarily unavailable (all models rate-limited). Please try again.'
 
 
@@ -221,9 +235,7 @@ def call_llm(client, messages, max_tokens=500, temperature=0.7):
 # ──────────────────────────────────────────────
 def get_form(team, date, df, n=10):
     """Win percentage in the team's last n matches before date."""
-    past = df[
-        ((df['home_team'] == team) | (df['away_team'] == team)) & (df['date'] < date)
-    ].tail(n)
+    past = df[((df['home_team'] == team) | (df['away_team'] == team)) & (df['date'] < date)].tail(n)
     if len(past) == 0:
         return 0.4
     wins = sum(
@@ -233,11 +245,10 @@ def get_form(team, date, df, n=10):
     )
     return wins / len(past)
 
+
 def get_avg_goals(team, date, df, n=10):
     """Average goals scored in the team's last n matches."""
-    past = df[
-        ((df['home_team'] == team) | (df['away_team'] == team)) & (df['date'] < date)
-    ].tail(n)
+    past = df[((df['home_team'] == team) | (df['away_team'] == team)) & (df['date'] < date)].tail(n)
     if len(past) == 0:
         return 1.0
     total = sum(
@@ -245,6 +256,7 @@ def get_avg_goals(team, date, df, n=10):
         for _, r in past.iterrows()
     )
     return total / len(past)
+
 
 def get_h2h_stats(home, away, df):
     """Full head-to-head match history between two teams."""
@@ -263,14 +275,14 @@ def get_h2h_stats(home, away, df):
     )
     return h2h
 
+
 def get_ranking_at_date(team, date, rankings_df):
     """Most recent FIFA ranking before date."""
-    tr = rankings_df[
-        (rankings_df['country_full'] == team) & (rankings_df['rank_date'] <= date)
-    ]
+    tr = rankings_df[(rankings_df['country_full'] == team) & (rankings_df['rank_date'] <= date)]
     if len(tr) == 0:
         return 100
     return int(tr.sort_values('rank_date').iloc[-1]['rank'])
+
 
 def build_features(home, away, results_df, rankings_df, is_neutral=False):
     """Build the 13-feature vector for a match prediction."""
@@ -285,10 +297,9 @@ def build_features(home, away, results_df, rankings_df, is_neutral=False):
     h2h_df = get_h2h_stats(home, away, results_df)
     if h2h_df is not None and len(h2h_df) > 0:
         total = len(h2h_df)
-        hw = sum(h2h_df['winner'] == home)
-        dw = sum(h2h_df['winner'] == 'Draw')
-        aw = sum(h2h_df['winner'] == away)
-        hw_rate, dr_rate, aw_rate = hw/total, dw/total, aw/total
+        hw_rate = sum(h2h_df['winner'] == home)   / total
+        dr_rate = sum(h2h_df['winner'] == 'Draw') / total
+        aw_rate = sum(h2h_df['winner'] == away)   / total
     else:
         total, hw_rate, dr_rate, aw_rate = 0, 0.33, 0.33, 0.33
 
@@ -300,15 +311,23 @@ def build_features(home, away, results_df, rankings_df, is_neutral=False):
         total, int(is_neutral)
     ]])
 
-def local_img_b64(path, height=120):
-    """Embed a local image as base64 HTML."""
-    try:
-        with open(path, 'rb') as f:
-            data = base64.b64encode(f.read()).decode()
-        ext = Path(path).suffix.lstrip('.')
-        return f'<img src="data:image/{ext};base64,{data}" style="height:{height}px; border-radius:8px;" />'
-    except Exception:
-        return '⚽'
+
+# ──────────────────────────────────────────────
+# COUNTRY → ISO-3 (for choropleth map)
+# ──────────────────────────────────────────────
+COUNTRY_ISO3 = {
+    'Brazil': 'BRA', 'Germany': 'DEU', 'Italy': 'ITA', 'Argentina': 'ARG',
+    'France': 'FRA', 'England': 'ENG', 'Spain': 'ESP', 'Netherlands': 'NLD',
+    'Uruguay': 'URY', 'Hungary': 'HUN', 'Sweden': 'SWE', 'Czech Republic': 'CZE',
+    'Poland': 'POL', 'Russia': 'RUS', 'Portugal': 'PRT', 'Belgium': 'BEL',
+    'Croatia': 'HRV', 'Denmark': 'DNK', 'Switzerland': 'CHE', 'Austria': 'AUT',
+    'Mexico': 'MEX', 'USA': 'USA', 'Chile': 'CHL', 'Romania': 'ROU',
+    'Bulgaria': 'BGR', 'Soviet Union': 'RUS', 'Yugoslavia': 'SRB',
+    'West Germany': 'DEU', 'South Korea': 'KOR', 'Japan': 'JPN',
+    'Australia': 'AUS', 'Turkey': 'TUR', 'Senegal': 'SEN', 'Morocco': 'MAR',
+    'South Africa': 'ZAF', 'Qatar': 'QAT'
+}
+
 
 # ──────────────────────────────────────────────
 # SIDEBAR
@@ -333,7 +352,7 @@ with st.sidebar:
 
     menu = st.radio(
         "Navigation",
-        ["📊 Dashboard", "🔮 Predictor", "🏆 WC26 Predictor", "🤖 AI Analyst" ],
+        ["📊 Dashboard", "🔮 Predictor", "🏆 WC26 Predictor", "🤖 AI Analyst"],
         label_visibility="collapsed"
     )
 
@@ -348,7 +367,6 @@ with st.sidebar:
             "<div style='text-align:center; color:#888; font-size:0.85rem;'>⚠️ Add OPENROUTER_API_KEY to .env</div>",
             unsafe_allow_html=True
         )
-
 
 
 # ──────────────────────────────────────────────
@@ -396,12 +414,13 @@ if menu == "📊 Dashboard":
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🏆 Wins by Nation",
-        "🎯 Goal Scorers (Top Teams)",
+        "🎯 Goal Scorers",
         "📈 Historical Trends",
         "⚔️ Head to Head",
         "🏟️ Tournament Map"
     ])
 
+    # ── TAB 1: Wins by Nation ──
     with tab1:
         st.subheader("Top 15 — All-Time World Cup Wins")
         wins_home  = wc_matches[wc_matches['home_score'] > wc_matches['away_score']].groupby('home_team').size()
@@ -423,18 +442,16 @@ if menu == "📊 Dashboard":
         fig.update_traces(marker_line_width=0)
         st.plotly_chart(fig, width='stretch')
 
-        # ── NEW TAB 2: Top Scorer Teams ──
+    # ── TAB 2: Goal Scorers ──
     with tab2:
         st.subheader("Most Goals Scored — Top 15 Nations")
-
         goals_home = wc_matches.groupby('home_team')['home_score'].sum()
         goals_away = wc_matches.groupby('away_team')['away_score'].sum()
         total_goals = goals_home.add(goals_away, fill_value=0).sort_values(ascending=False).head(15)
 
         fig = px.bar(
             x=total_goals.values, y=total_goals.index,
-            orientation='h',
-            color=total_goals.values,
+            orientation='h', color=total_goals.values,
             color_continuous_scale=[[0, '#1a2744'], [0.5, '#5cdb95'], [1, '#e8c040']],
             labels={'x': 'Total Goals', 'y': ''}
         )
@@ -446,6 +463,7 @@ if menu == "📊 Dashboard":
         )
         st.plotly_chart(fig, width='stretch')
 
+    # ── TAB 3: Historical Trends ──
     with tab3:
         st.subheader("Goals per World Cup Edition")
         wc_copy = wc_matches.copy()
@@ -471,28 +489,30 @@ if menu == "📊 Dashboard":
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             font_color='#e0e0e0', legend=dict(bgcolor='rgba(0,0,0,0)'),
             yaxis=dict(title='Total Goals', gridcolor='rgba(255,255,255,0.06)'),
-            yaxis2=dict(title='Avg per Match', overlaying='y', side='right', gridcolor='rgba(255,255,255,0.06)'),
+            yaxis2=dict(title='Avg per Match', overlaying='y', side='right',
+                        gridcolor='rgba(255,255,255,0.06)'),
             height=420, hovermode='x unified'
         )
         st.plotly_chart(fig, width='stretch')
 
-
-
+    # ── TAB 4: Head to Head ──
     with tab4:
         st.subheader("Head-to-Head History")
         col_h, col_a = st.columns(2)
         with col_h:
             eq1 = st.selectbox("Team 1", all_teams,
-                               index=all_teams.index("Brazil") if "Brazil" in all_teams else 0, key="h2h1")
+                               index=all_teams.index("Brazil") if "Brazil" in all_teams else 0,
+                               key="h2h1")
         with col_a:
             eq2 = st.selectbox("Team 2", all_teams,
-                               index=all_teams.index("Argentina") if "Argentina" in all_teams else 1, key="h2h2")
+                               index=all_teams.index("Argentina") if "Argentina" in all_teams else 1,
+                               key="h2h2")
 
         if eq1 != eq2:
             h2h_df = get_h2h_stats(eq1, eq2, results)
             if h2h_df is not None and len(h2h_df) > 0:
-                w1    = sum(h2h_df['winner'] == eq1)
-                w2    = sum(h2h_df['winner'] == eq2)
+                w1 = sum(h2h_df['winner'] == eq1)
+                w2 = sum(h2h_df['winner'] == eq2)
                 draws = sum(h2h_df['winner'] == 'Draw')
 
                 c1, c2, c3, c4 = st.columns(4)
@@ -520,51 +540,36 @@ if menu == "📊 Dashboard":
             else:
                 st.info(f"No match data found between {eq1} and {eq2}.")
 
-
-    # ── NEW TAB 5: Tournament Map ──
+    # ── TAB 5: Tournament Map ──
     with tab5:
         st.subheader("World Cup Host Nations Across History")
 
-# Map country names to ISO-3 codes
-    COUNTRY_ISO3 = {
-        'Brazil': 'BRA', 'Germany': 'DEU', 'Italy': 'ITA', 'Argentina': 'ARG',
-        'France': 'FRA', 'England': 'ENG', 'Spain': 'ESP', 'Netherlands': 'NLD',
-        'Uruguay': 'URY', 'Hungary': 'HUN', 'Sweden': 'SWE', 'Czech Republic': 'CZE',
-        'Poland': 'POL', 'Russia': 'RUS', 'Portugal': 'PRT', 'Belgium': 'BEL',
-        'Croatia': 'HRV', 'Denmark': 'DNK', 'Switzerland': 'CHE', 'Austria': 'AUT',
-        'Mexico': 'MEX', 'USA': 'USA', 'Chile': 'CHL', 'Romania': 'ROU',
-        'Bulgaria': 'BGR', 'Soviet Union': 'RUS', 'Yugoslavia': 'SRB',
-        'West Germany': 'DEU', 'South Korea': 'KOR', 'Japan': 'JPN',
-        'Australia': 'AUS', 'Turkey': 'TUR', 'Senegal': 'SEN', 'Morocco': 'MAR',
-        'South Africa': 'ZAF', 'Qatar': 'QAT'
-    }
+        host_counts = wc_matches.groupby('country').size().reset_index(name='matches_hosted')
+        host_counts['iso3'] = host_counts['country'].map(COUNTRY_ISO3)
+        host_counts = host_counts.dropna(subset=['iso3'])
 
-    host_counts = wc_matches.groupby('country').size().reset_index(name='matches_hosted')
-    host_counts['iso3'] = host_counts['country'].map(COUNTRY_ISO3)
-    host_counts = host_counts.dropna(subset=['iso3'])
-
-    fig = px.choropleth(
-    host_counts,
-    locations='iso3',
-    locationmode='ISO-3',
-    color='matches_hosted',
-    hover_name='country',        # ← muestra el nombre del país
-    hover_data={'iso3': False},  # ← oculta la columna iso3
-    color_continuous_scale=[[0, '#1a2744'], [0.5, '#e8c040'], [1, '#ff6b6b']],
-    labels={'matches_hosted': 'Matches Hosted'}
-)
-    fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#e0e0e0', height=500,
-                geo=dict(
-                    bgcolor='rgba(0,0,0,0)',
-                    landcolor='#16213e',
-                    showframe=False,
-                    showcoastlines=False,
-                    projection_type='natural earth'
-                )
+        fig = px.choropleth(
+            host_counts,
+            locations='iso3',
+            locationmode='ISO-3',
+            color='matches_hosted',
+            hover_name='country',
+            hover_data={'iso3': False},
+            color_continuous_scale=[[0, '#1a2744'], [0.5, '#e8c040'], [1, '#ff6b6b']],
+            labels={'matches_hosted': 'Matches Hosted'}
+        )
+        fig.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font_color='#e0e0e0', height=500,
+            geo=dict(
+                bgcolor='rgba(0,0,0,0)',
+                landcolor='#16213e',
+                showframe=False,
+                showcoastlines=False,
+                projection_type='natural earth'
             )
-    st.plotly_chart(fig, width='stretch')
+        )
+        st.plotly_chart(fig, width='stretch')
 
 
 # ══════════════════════════════════════════════
@@ -686,9 +691,8 @@ elif menu == "🔮 Predictor":
 
 
 # ══════════════════════════════════════════════
-# PAGE 3: WC 2026 GAME
+# PAGE 3: WC 2026 PREDICTOR
 # ══════════════════════════════════════════════
-
 elif menu == "🏆 WC26 Predictor":
     render_wc2026_game(
         model=model if model_ok else None,
@@ -696,6 +700,7 @@ elif menu == "🏆 WC26 Predictor":
         rankings_df=rankings if data_ok else None,
         build_features_fn=build_features if data_ok else None
     )
+
 
 # ══════════════════════════════════════════════
 # PAGE 4: AI ANALYST
@@ -716,7 +721,6 @@ elif menu == "🤖 AI Analyst":
         away_ai = st.selectbox("Away Team", all_teams,
                                index=all_teams.index("France") if "France" in all_teams else 1)
 
-    # Language selector kept intentionally — useful bilingual feature
     language = st.radio("Analysis language", ["English", "Español"], horizontal=True)
     depth    = st.select_slider("Analysis depth", ["Brief", "Standard", "Detailed"], value="Standard")
 
@@ -724,7 +728,7 @@ elif menu == "🤖 AI Analyst":
         if home_ai == away_ai:
             st.error("Teams must be different.")
         elif not llm_client:
-            st.error("Configure your OpenRouter API Key in the sidebar to use this feature.")
+            st.error("OpenRouter API Key not configured. Add it to your `.env` file.")
         else:
             with st.spinner("AI analyst is preparing the report..."):
                 today     = pd.Timestamp.now()
@@ -743,7 +747,9 @@ elif menu == "🤖 AI Analyst":
 
                 tokens_map  = {"Brief": 200, "Standard": 400, "Detailed": 700}
                 lang_instr  = "in Spanish" if language == "Español" else "in English"
-                depth_instr = "2 concise paragraphs" if depth == "Brief" else "3 paragraphs" if depth == "Standard" else "4-5 detailed paragraphs"
+                depth_instr = ("2 concise paragraphs" if depth == "Brief"
+                               else "3 paragraphs" if depth == "Standard"
+                               else "4-5 detailed paragraphs")
 
                 prompt = f"""You are an expert international football analyst with access to real statistical data.
 
@@ -779,81 +785,3 @@ INSTRUCTIONS:
                     <div style='color:#e0e0e0; line-height:1.8; white-space: pre-wrap;'>{analysis}</div>
                 </div>
             """, unsafe_allow_html=True)
-
-
-# ══════════════════════════════════════════════
-# PAGE 4: CHAT WITH DATA
-# ══════════════════════════════════════════════
-elif menu == "💬 Chat with Data":
-    st.markdown("# 💬 Chat with Historical Data")
-    st.markdown("*Ask anything about World Cup history — the LLM queries real data to answer*")
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Chat history
-    for msg in st.session_state.messages:
-        css_class = "chat-msg-user" if msg["role"] == "user" else "chat-msg-ai"
-        icon      = "👤" if msg["role"] == "user" else "🤖"
-        st.markdown(f'<div class="{css_class}">{icon} {msg["content"]}</div>', unsafe_allow_html=True)
-
-    question = st.chat_input("e.g. How many times did Brazil win the World Cup? Best record against Germany?")
-
-    if question:
-        if not data_ok:
-            st.error("Data not available.")
-        elif not llm_client:
-            st.error("Configure your OpenRouter API Key in the sidebar.")
-        else:
-            st.session_state.messages.append({"role": "user", "content": question})
-            st.markdown(f'<div class="chat-msg-user">👤 {question}</div>', unsafe_allow_html=True)
-
-            with st.spinner("Querying data..."):
-                wc = results[results['tournament'] == 'FIFA World Cup'].copy()
-                wins_home  = wc[wc['home_score'] > wc['away_score']].groupby('home_team').size()
-                wins_away  = wc[wc['away_score'] > wc['home_score']].groupby('away_team').size()
-                total_wins = wins_home.add(wins_away, fill_value=0).sort_values(ascending=False).head(10)
-
-                context = f"""FIFA WORLD CUP HISTORICAL DATA:
-- Total matches: {len(wc):,} | Period: {wc['date'].min().year}–{wc['date'].max().year}
-- Total international matches in dataset: {len(results):,}
-- National teams: {len(all_teams):,}
-
-TOP 10 NATIONS BY WORLD CUP WINS:
-{total_wins.to_string()}
-
-RESULT DISTRIBUTION (World Cup):
-Home win: {(wc['result_label']=='Home Win').mean():.1%} | Draw: {(wc['result_label']=='Draw').mean():.1%} | Away win: {(wc['result_label']=='Away Win').mean():.1%}"""
-
-                # Add team-specific stats if a team is mentioned
-                for team in all_teams:
-                    if team.lower() in question.lower():
-                        tm = wc[(wc['home_team'] == team) | (wc['away_team'] == team)]
-                        if len(tm) > 0:
-                            tw = len(tm[
-                                ((tm['home_team'] == team) & (tm['home_score'] > tm['away_score'])) |
-                                ((tm['away_team'] == team) & (tm['away_score'] > tm['home_score']))
-                            ])
-                            goals = int(
-                                tm[tm['home_team'] == team]['home_score'].sum() +
-                                tm[tm['away_team'] == team]['away_score'].sum()
-                            )
-                            context += f"\n\n{team.upper()} IN WORLD CUPS:\n"
-                            context += f"- Matches: {len(tm)} | Wins: {tw} | Goals scored: {goals}\n"
-
-                messages_for_api = [
-                    {
-                        "role": "system",
-                        "content": f"""You are a FIFA World Cup statistics expert. You MUST always give a complete, informative answer of at least 2-3 sentences. Never respond with just one word or a filler phrase. Answer in the same language as the user. Base your answers on the data below, and if the exact data isn't available, say so clearly and provide what context you can.{context}"""
-                    }
-                ] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[-6:]]
-
-                answer = call_llm(llm_client, messages_for_api, max_tokens=700, temperature=0.5)
-
-            st.session_state.messages.append({"role": "assistant", "content": answer})
-            st.markdown(f'<div class="chat-msg-ai">🤖 {answer}</div>', unsafe_allow_html=True)
-            st.rerun()
-
-    if st.button("🗑️ Clear chat"):
-        st.session_state.messages = []
-        st.rerun()
