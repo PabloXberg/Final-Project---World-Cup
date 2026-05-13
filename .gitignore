@@ -2,18 +2,18 @@
 .env
 
 # Modelos (archivos grandes)
-*.pkl
-*.keras
-models/
+# *.pkl
+# *.keras
+# models/
 
 # Datos
-db/
+#db/
 
 # Python
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
+# __pycache__/
+# *.pyc
+# .ipynb_checkpoints/
 
 # Entorno virtual
-venv/
-.venv/
+# venv/
+# .venv/
